@@ -9,9 +9,14 @@ const fundLabels: Record<string, string> = Object.fromEntries(
   programs.map((program) => [fundSlug(program.fund), program.fund])
 );
 
-type InitResponse =
-  | { ok: true; reference: string; authorizationUrl: string }
-  | { ok: false; demo?: boolean; error: string };
+/** Shape of the initialize proxy's JSON response (flat, off the wire). */
+type InitResponse = {
+  ok?: boolean;
+  demo?: boolean;
+  error?: string;
+  reference?: string;
+  authorizationUrl?: string;
+};
 
 export function DonationForm() {
   return (
@@ -45,8 +50,9 @@ function DonationFormInner() {
   }, [fundParam]);
 
   useEffect(() => {
+    const timer = timerRef.current;
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timer) clearTimeout(timer);
     };
   }, []);
 
@@ -86,7 +92,7 @@ function DonationFormInner() {
         window.location.assign(data.authorizationUrl);
         return;
       }
-      if (data.ok === false && data.demo) {
+      if (data.demo) {
         setDemoNotice(
           "Thank you! Online payments are being finalised, so your pledge was recorded as a demonstration — email us to complete your gift."
         );
