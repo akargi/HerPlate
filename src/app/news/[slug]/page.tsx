@@ -4,14 +4,13 @@ import { notFound } from "next/navigation";
 import { PageHero } from "@/components/ui/Section";
 import { PlaceholderImage } from "@/components/ui/StatBar";
 import { ButtonLink } from "@/components/ui/ButtonLink";
-import { getPost, posts } from "@/content/posts";
+import { getPost, listPosts } from "@/lib/db";
 import { impactImages } from "@/content/images";
 
 type Params = { slug: string };
 
-export function generateStaticParams(): Params[] {
-  return posts.map((post) => ({ slug: post.slug }));
-}
+// Post content is admin-managed and can change at any time.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -19,7 +18,7 @@ export async function generateMetadata({
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const post = getPost(slug);
+  const post = await getPost(slug);
   if (!post) return { title: "Post not found" };
   return { title: post.title, description: post.excerpt };
 }
@@ -30,10 +29,10 @@ export default async function NewsPostPage({
   params: Promise<Params>;
 }) {
   const { slug } = await params;
-  const post = getPost(slug);
+  const post = await getPost(slug);
   if (!post) notFound();
 
-  const related = posts.filter((p) => p.slug !== post.slug).slice(0, 2);
+  const related = (await listPosts()).filter((p) => p.slug !== post.slug).slice(0, 2);
   const shareUrl = `/news/${post.slug}`;
 
   return (

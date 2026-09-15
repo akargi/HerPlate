@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { donationTiers } from "@/content/site";
 import { fundSlug, programs } from "@/content/programs";
@@ -8,6 +8,10 @@ import { fundSlug, programs } from "@/content/programs";
 const fundLabels: Record<string, string> = Object.fromEntries(
   programs.map((program) => [fundSlug(program.fund), program.fund])
 );
+
+type InitResponse =
+  | { ok: true; reference: string; authorizationUrl: string }
+  | { ok: false; demo?: boolean; error: string };
 
 export function DonationForm() {
   return (
@@ -25,6 +29,12 @@ function DonationFormInner() {
   const [custom, setCustom] = useState("");
   const [frequency, setFrequency] = useState<"once" | "monthly">("once");
   const [fund, setFund] = useState("general");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "starting" | "redirecting">("idle");
+  const [error, setError] = useState<string | null>(null);
+  const [demoNotice, setDemoNotice] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Sync the URL ?fund= param into state after hydration (deep links from
@@ -34,9 +44,65 @@ function DonationFormInner() {
     if (fundParam && fundLabels[fundParam]) setFund(fundParam);
   }, [fundParam]);
 
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setDemoNotice(null);
+
+    const raw = custom.trim() || amount.replace(/[₦,\s]/g, "");
+    const naira = Number(raw);
+    if (!Number.isFinite(naira) || naira < 500) {
+      setError("Please choose an amount of at least ₦500.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError("Please enter a valid email so we can send your receipt.");
+      return;
+    }
+
+    setStatus("starting");
+    try {
+      const res = await fetch("/api/donations/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          name: name.trim() || email.trim(),
+          amount: naira,
+          fund,
+          frequency,
+        }),
+      });
+      const data = (await res.json()) as InitResponse;
+
+      if (data.ok && data.authorizationUrl) {
+        setStatus("redirecting");
+        window.location.assign(data.authorizationUrl);
+        return;
+      }
+      if (data.ok === false && data.demo) {
+        setDemoNotice(
+          "Thank you! Online payments are being finalised, so your pledge was recorded as a demonstration — email us to complete your gift."
+        );
+        setStatus("idle");
+        return;
+      }
+      setError(data.error ?? "Could not start the payment. Please try again.");
+    } catch {
+      setError("Network problem — please check your connection and try again.");
+    }
+    setStatus("idle");
+  }
+
   return (
     <form
-      onSubmit={(e) => e.preventDefault()}
+      onSubmit={handleSubmit}
       className="rounded-2xl border border-brand-100 bg-white p-6 shadow-sm"
     >
       {/* Frequency */}
@@ -114,15 +180,62 @@ function DonationFormInner() {
         </select>
       </div>
 
+      {/* Donor details */}
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div>
+          <label htmlFor="donor-name" className="mb-1.5 block text-sm font-medium text-stone-700">
+            Name <span className="text-stone-400">(optional)</span>
+          </label>
+          <input
+            id="donor-name"
+            type="text"
+            autoComplete="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full rounded-xl border border-stone-300 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+          />
+        </div>
+        <div>
+          <label htmlFor="donor-email" className="mb-1.5 block text-sm font-medium text-stone-700">
+            Email <span aria-hidden className="text-accent-600">*</span>
+          </label>
+          <input
+            id="donor-email"
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-xl border border-stone-300 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+          />
+        </div>
+      </div>
+
+      {error && (
+        <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+      {demoNotice && (
+        <p role="status" className="mt-4 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800">
+          {demoNotice}
+        </p>
+      )}
+
       <button
         type="submit"
-        className="mt-6 w-full rounded-full bg-accent-500 px-6 py-3.5 text-base font-semibold text-white transition-colors hover:bg-accent-600"
+        disabled={status !== "idle"}
+        className="mt-6 w-full rounded-full bg-accent-500 px-6 py-3.5 text-base font-semibold text-white transition-colors hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        Donate {custom ? custom : amount} {frequency === "monthly" ? "monthly" : "now"}
+        {status === "idle"
+          ? `Donate ${custom ? custom : amount} ${frequency === "monthly" ? "monthly" : "now"}`
+          : status === "starting"
+            ? "Starting secure checkout…"
+            : "Redirecting to secure payment…"}
       </button>
       <p className="mt-3 text-center text-xs text-stone-500">
-        Demo form — wire this button to Paystack/Flutterwave checkout before
-        launch.
+        You&apos;ll complete payment on our secure Paystack checkout — we never
+        see your card details.
       </p>
     </form>
   );

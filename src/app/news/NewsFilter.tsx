@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { PostCard } from "@/components/ui/Cards";
-import { posts } from "@/content/posts";
+import type { Post } from "@/content/posts";
 
 const categories = [
   "All",
@@ -13,7 +13,7 @@ const categories = [
   "Events Recap",
 ] as const;
 
-export function NewsFilter() {
+export function NewsFilter({ posts }: { posts: Post[] }) {
   const [active, setActive] = useState<(typeof categories)[number]>("All");
 
   const visible =

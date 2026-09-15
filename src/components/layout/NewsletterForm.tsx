@@ -5,6 +5,7 @@ import { useState } from "react";
 export function NewsletterForm() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [pending, setPending] = useState(false);
 
   if (submitted) {
     return (
@@ -17,9 +18,26 @@ export function NewsletterForm() {
   return (
     <form
       className="mt-4"
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
-        setSubmitted(true);
+        setPending(true);
+        try {
+          await fetch("/api/submissions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "newsletter",
+              name: email,
+              email,
+              fields: {},
+            }),
+          });
+        } catch {
+          // Silent — a failed newsletter capture shouldn't scare the user off.
+        } finally {
+          setPending(false);
+          setSubmitted(true);
+        }
       }}
     >
       <label htmlFor="newsletter-email" className="sr-only">
@@ -37,9 +55,10 @@ export function NewsletterForm() {
         />
         <button
           type="submit"
-          className="shrink-0 rounded-full bg-accent-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-600"
+          disabled={pending}
+          className="shrink-0 rounded-full bg-accent-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-600 disabled:opacity-60"
         >
-          Subscribe
+          {pending ? "…" : "Subscribe"}
         </button>
       </div>
     </form>

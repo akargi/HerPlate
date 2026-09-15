@@ -34,12 +34,16 @@ export function FormShell({
   children,
   successMessage,
   submitLabel = "Submit",
+  submissionType,
 }: {
   children: ReactNode;
   successMessage: string;
   submitLabel?: string;
+  /** When set, the form POSTs to the submissions API and lands in the admin inbox. */
+  submissionType?: "contact" | "volunteer" | "partner";
 }) {
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState(false);
 
   if (submitted) {
     return (
@@ -49,14 +53,45 @@ export function FormShell({
     );
   }
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSubmitted(true);
+    if (!submissionType) {
+      setSubmitted(true);
+      return;
+    }
+    const form = e.currentTarget;
+    const data = new FormData(form);
+    const name = String(data.get("name") ?? "").trim();
+    const email = String(data.get("email") ?? "").trim();
+    const fields: Record<string, string> = {};
+    data.forEach((value, key) => {
+      if (key !== "name" && key !== "email") {
+        fields[key] = String(value);
+      }
+    });
+
+    try {
+      const res = await fetch("/api/submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: submissionType, name, email, fields }),
+      });
+      if (!res.ok) throw new Error("Request failed");
+      setSubmitted(true);
+    } catch {
+      setError(true);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {children}
+      {error && (
+        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+          Something went wrong sending your message — please try again, or
+          email us directly.
+        </p>
+      )}
       <button
         type="submit"
         className="inline-flex items-center justify-center rounded-full bg-brand-700 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-800"

@@ -29,15 +29,16 @@ export default function ContactPage() {
               <FormShell
                 successMessage="Thank you for reaching out — we'll reply within five working days."
                 submitLabel="Send message"
+                submissionType="contact"
               >
                 <Field label="Name" htmlFor="c-name" required>
-                  <input id="c-name" required className={fieldClasses} />
+                  <input id="c-name" name="name" required className={fieldClasses} />
                 </Field>
                 <Field label="Email" htmlFor="c-email" required>
-                  <input id="c-email" type="email" required className={fieldClasses} />
+                  <input id="c-email" name="email" type="email" required className={fieldClasses} />
                 </Field>
                 <Field label="Subject" htmlFor="c-subject" required>
-                  <select id="c-subject" className={fieldClasses}>
+                  <select id="c-subject" name="subject" className={fieldClasses}>
                     <option>General inquiry</option>
                     <option>Donations & receipts</option>
                     <option>Volunteering</option>
@@ -46,7 +47,7 @@ export default function ContactPage() {
                   </select>
                 </Field>
                 <Field label="Message" htmlFor="c-message" required>
-                  <textarea id="c-message" rows={5} required className={fieldClasses} />
+                  <textarea id="c-message" name="message" rows={5} required className={fieldClasses} />
                 </Field>
               </FormShell>
             </div>

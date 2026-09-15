@@ -71,19 +71,20 @@ export default function PartnerPage() {
               <FormShell
                 successMessage="Thank you — our partnerships team will be in touch shortly."
                 submitLabel="Send inquiry"
+                submissionType="partner"
               >
                 <>
                     <Field label="Organisation" htmlFor="p-org" required>
-                      <input id="p-org" required className={fieldClasses} />
+                      <input id="p-org" name="organisation" required className={fieldClasses} />
                     </Field>
                     <Field label="Your name" htmlFor="p-name" required>
-                      <input id="p-name" required className={fieldClasses} />
+                      <input id="p-name" name="name" required className={fieldClasses} />
                     </Field>
                     <Field label="Work email" htmlFor="p-email" required>
-                      <input id="p-email" type="email" required className={fieldClasses} />
+                      <input id="p-email" name="email" type="email" required className={fieldClasses} />
                     </Field>
                     <Field label="Partnership interest" htmlFor="p-type">
-                      <select id="p-type" className={fieldClasses}>
+                      <select id="p-type" name="interest" className={fieldClasses}>
                         <option>Funding</option>
                         <option>In-kind support</option>
                         <option>Technical</option>
@@ -92,7 +93,7 @@ export default function PartnerPage() {
                       </select>
                     </Field>
                     <Field label="Message" htmlFor="p-message" required>
-                      <textarea id="p-message" rows={4} required className={fieldClasses} />
+                      <textarea id="p-message" name="message" rows={4} required className={fieldClasses} />
                     </Field>
                 </>
               </FormShell>

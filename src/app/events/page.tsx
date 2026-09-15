@@ -1,14 +1,18 @@
 import type { Metadata } from "next";
 import { PageHero } from "@/components/ui/Section";
 import { ButtonLink } from "@/components/ui/ButtonLink";
-import { events } from "@/content/events";
+import { listEvents } from "@/lib/db";
 
 export const metadata: Metadata = {
   title: "Events",
   description: "Upcoming HPTF events, screenings, and volunteer orientations.",
 };
 
-export default function EventsPage() {
+// Event content is admin-managed and can change at any time.
+export const dynamic = "force-dynamic";
+
+export default async function EventsPage() {
+  const events = await listEvents();
   const upcoming = events.filter((e) => e.status === "upcoming");
   const past = events.filter((e) => e.status === "past");
 

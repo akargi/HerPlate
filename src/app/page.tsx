@@ -9,11 +9,15 @@ import {
 } from "@/components/ui/Cards";
 import { programs } from "@/content/programs";
 import { stories } from "@/content/stories";
-import { posts } from "@/content/posts";
 import { impactStats } from "@/content/impact";
 import { impactImages } from "@/content/images";
+import { listPosts } from "@/lib/db";
 
-export default function HomePage() {
+// The news preview reflects admin-managed posts.
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const posts = (await listPosts()).slice(0, 3);
   return (
     <>
       {/* Hero */}

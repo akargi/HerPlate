@@ -25,6 +25,14 @@
 *.pem
 dev-server.log
 
+# runtime data store (admin content + inquiries)
+/data
+
+# NestJS backend (server/)
+/server/node_modules
+/server/dist
+/server/data
+
 # debug
 npm-debug.log*
 yarn-debug.log*
